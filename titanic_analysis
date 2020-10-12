@@ -47,3 +47,13 @@ library(stringr)
     aggr(train, data = TRUE, numbers = c(TRUE, TRUE))
     vis_miss(train)
     
+    
+    
+    #create family number using parch and sibsp variables 
+
+train <- train %>%
+  mutate(FamilyCount = SibSp + Parch + 1)
+test <- test %>%
+  mutate(FamilyCount = SibSp + Parch + 1)
+data <- data %>%
+  mutate(FamilyCount = SibSp + Parch + 1)
