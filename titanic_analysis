@@ -13,6 +13,25 @@ library(stringr)
   data <- rbind(train, mutate(test, Survived = NA))
   str(data)
   
+train$Survived <- as.factor(train$Survived)
+data$Survived <- as.factor(data$Survived)
+ 
+train$Pclass <- as.factor(train$Pclass)
+test$Pclass <- as.factor(test$Pclass)
+data$Pclass <- as.factor(data$Pclass)
+
+train$Sex <- as.factor(train$Sex)
+test$Sex <- as.factor(test$Sex)
+data$Sex <- as.factor(data$Sex)
+
+train$Title <- as.factor(train$Title)
+test$Title <- as.factor(test$Title)
+data$Title <- as.factor(data$Title)
+
+train$Age <- as.integer(train$Age)
+test$Age <- as.integer(test$Age)
+data$Age <- as.integer(data$Age)
+ 
   #Feature Engineering
     #create a title col from Name col 
       #checking for missing Names in both train and Test Data
