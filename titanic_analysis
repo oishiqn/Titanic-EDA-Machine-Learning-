@@ -64,6 +64,13 @@ data$Age <- as.integer(data$Age)
         group_by(Ticket) %>%
         mutate(Fare_per_person = Fare/n()) %>%
         ungroup()
+     #create family number using parch and sibsp variables  
+      train <- train %>%
+        mutate(FamilyCount = SibSp + Parch + 1)
+      test <- test %>%
+        mutate(FamilyCount = SibSp + Parch + 1)
+      data <- data %>%
+        mutate(FamilyCount = SibSp + Parch + 1)
         
   #Null-values handling
     #convert any "" in Cabin into Null value
@@ -80,12 +87,3 @@ data$Age <- as.integer(data$Age)
     vis_miss(train)
     
 
-    #create family number using parch and sibsp variables  
-
-
-train <- train %>%
-  mutate(FamilyCount = SibSp + Parch + 1)
-test <- test %>%
-  mutate(FamilyCount = SibSp + Parch + 1)
-data <- data %>%
-  mutate(FamilyCount = SibSp + Parch + 1)
