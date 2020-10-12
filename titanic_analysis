@@ -1,0 +1,49 @@
+library(tidyverse)
+library(VIM)
+library(naniar)
+library(stringr)
+
+#Data Importing
+  train <- read.csv("train.csv")
+  test <- read.csv("test.csv")
+
+#Data Processing
+
+  #joining the train and test data into one
+  data <- rbind(train, mutate(test, Survived = NA))
+  str(data)
+  
+  #Feature Engineering
+    #create a title col from Name col 
+      #checking for missing Names in both train and Test Data
+      sum(is.na(data$Name))
+      #mutate the new Title col in all data sets
+      data <- data %>%
+        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
+      train <- train %>%
+        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
+      test <- test %>%
+        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
+      
+    #create a Family col from Name col 
+      data <- data %>%
+        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
+      train <- train %>%
+        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
+      test <- test %>%
+        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
+        
+  #Null-values handling
+    #convert any "" in Cabin into Null value
+    data <- data %>%
+      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
+    train <- train %>%
+      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
+    test <- test %>%
+      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
+      
+    #Exploring null values in training set
+    colSums(is.na(train))
+    aggr(train, data = TRUE, numbers = c(TRUE, TRUE))
+    vis_miss(train)
+    
