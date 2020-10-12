@@ -32,6 +32,19 @@ library(stringr)
         mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
       test <- test %>%
         mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
+     #create a Fare-per-person col by dividing the total fare price by the size of ticket
+      train <- train %>% 
+        group_by(Ticket) %>%
+        mutate(Fare_per_person = Fare/n()) %>%
+        ungroup()
+      test <- test %>% 
+        group_by(Ticket) %>%
+        mutate(Fare_per_person = Fare/n()) %>%
+        ungroup()
+      data <- data %>% 
+        group_by(Ticket) %>%
+        mutate(Fare_per_person = Fare/n()) %>%
+        ungroup()
         
   #Null-values handling
     #convert any "" in Cabin into Null value
