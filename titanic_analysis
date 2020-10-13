@@ -3,88 +3,113 @@ library(VIM)
 library(naniar)
 library(stringr)
 
-#Data Importing
-  train <- read.csv("train.csv")
-  test <- read.csv("test.csv")
-
-#Data Processing
-
-  #joining the train and test data into one
-  data <- rbind(train, mutate(test, Survived = NA))
-  str(data)
-  
-  #Changing Data types 
-    train$Survived <- as.factor(train$Survived)
-    data$Survived <- as.factor(data$Survived)
-
-    train$Pclass <- as.factor(train$Pclass)
-    test$Pclass <- as.factor(test$Pclass)
-    data$Pclass <- as.factor(data$Pclass)
-
-    train$Sex <- as.factor(train$Sex)
-    test$Sex <- as.factor(test$Sex)
-    data$Sex <- as.factor(data$Sex)
-
-    train$Title <- as.factor(train$Title)
-    test$Title <- as.factor(test$Title)
-    data$Title <- as.factor(data$Title)
-
-    train$Age <- as.integer(train$Age)
-    test$Age <- as.integer(test$Age)
-    data$Age <- as.integer(data$Age)
-
-  #Feature Engineering
-    #create a title col from Name col 
-      #checking for missing Names in both train and Test Data
-      sum(is.na(data$Name))
-      #mutate the new Title col in all data sets
-      data <- data %>%
-        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
-      train <- train %>%
-        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
-      test <- test %>%
-        mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
-      
-    #create a Family col from Name col 
-      data <- data %>%
-        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
-      train <- train %>%
-        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
-      test <- test %>%
-        mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
-     #create a Fare-per-person col by dividing the total fare price by the size of ticket
-      train <- train %>% 
-        group_by(Ticket) %>%
-        mutate(Fare_per_person = Fare/n()) %>%
-        ungroup()
-      test <- test %>% 
-        group_by(Ticket) %>%
-        mutate(Fare_per_person = Fare/n()) %>%
-        ungroup()
-      data <- data %>% 
-        group_by(Ticket) %>%
-        mutate(Fare_per_person = Fare/n()) %>%
-        ungroup()
-     #create family number using parch and sibsp variables  
-      train <- train %>%
-        mutate(FamilyCount = SibSp + Parch + 1)
-      test <- test %>%
-        mutate(FamilyCount = SibSp + Parch + 1)
-      data <- data %>%
-        mutate(FamilyCount = SibSp + Parch + 1)
-        
-  #Null-values handling
-    #convert any "" in Cabin into Null value
-    data <- data %>%
-      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
-    train <- train %>%
-      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
-    test <- test %>%
-      mutate(Cabin = ifelse(Cabin == "", NA, Cabin))
-      
-    #Exploring null values in training set
-    colSums(is.na(train))
-    aggr(train, data = TRUE, numbers = c(TRUE, TRUE))
-    vis_miss(train)
+  #Data Importing
+    train <- read.csv("train.csv")
+    test <- read.csv("test.csv")
     
+  #Data Processing
+  
+    #joining the train and test data into one
+    data <- rbind(train, mutate(test, Survived = NA))
+ 
+  
+  #Feature Engineering
+  #create a title col from Name col 
 
+  #mutate the new Title col in all data sets
+  data <- data %>%
+    mutate(Title = str_extract(Name, "(?<=\\s)[[:alpha:]]+(?=\\.)" ))
+  
+  #create a Family col from Name col 
+  data <- data %>%
+    mutate(Family = str_extract(tolower(Name), ".+(?=,)"))
+  
+  #create a Fare-per-person col by dividing the total fare price by the size of ticket
+  data <- data %>% 
+    group_by(Ticket) %>%
+    mutate(Fare_per_person = Fare/n()) %>%
+    ungroup()
+  
+  #create family number using parch and sibsp variables  
+  data <- data %>%
+    mutate(FamilyCount = SibSp + Parch + 1)
+  
+  #Null-values handling
+    #Exploring null values in the whole data set
+      colSums(is.na(train))
+      aggr(data, data = TRUE, numbers = c(TRUE, TRUE))
+      vis_miss(data) 
+      
+      #Cabin col
+        #drop Cabin col since most of the values are missing and dose not contain crucial info
+          data$Cabin <- NULL
+          train$Cabin <- NULL
+          test$Cabin <- NULL
+        
+    
+      #Age col
+          ggplot(data, aes(x = Age, fill = Sex)) +
+            geom_histogram(alpha = 0.5, binwidth = 5)
+          #It seems like age distribution of males and females is similar
+          #After Examining no obvious association b/w the missing values and other variables is found
+          #Imputing the missing Age for Master title "young boys"
+          set.seed(100)
+           data <- data %>%
+             rowwise() %>%
+             mutate(Age =ifelse(is.na(Age) & Title == "Master", floor(runif(1, min=0, max=14)), Age))
+             
+          #Imputing the other missing Age based on random distribution
+           age_non_na <- data %>%
+             filter(!is.na(Age))
+           
+          data <- data %>%
+                 rowwise() %>%
+                 mutate(Age = ifelse(is.na(Age),as.integer(rnorm(1, mean = mean(age_non_na$Age), sd = sd(age_non_na$Age))), Age))
+        #Fare col
+          #Imputing Fare col
+            #Explore the Fare_per_person for each Pclass
+            ggplot(data, aes(x = Fare_per_person, fill = Pclass)) + 
+              geom_histogram()
+            
+            #Since the missing value is of Pclass 1, and the fare price is associated with the Pclass 
+            #The median of Pclass 1 fare will be used to impute the missing value
+            median_fare_p1 <- median(filter(data, Pclass == 1)$Fare_per_person)
+            data <- data %>% 
+              mutate(Fare_per_person = ifelse(is.na(Fare), median_fare_p1, Fare), Fare = Fare_per_person)
+    
+        #Embarked col
+            data %>% 
+              filter(Embarked == "")
+            ggplot(data, aes(Embarked, fill = Pclass)) +
+              geom_bar() 
+            ggplot(data, aes(Embarked, fill = Sex)) +
+              geom_bar()
+          #since most Pclass 1 Embarked from Port C and S , and most females Embarked from Port S
+          #impute using Port S 
+            data <- data %>%
+              mutate(Embarked = ifelse(Embarked == "", "S" , Embarked))
+          
+   #More Data processing 
+         #data types processing
+            data$Survived <- as.factor(data$Survived)
+            data$Pclass <- as.factor(data$Pclass)
+            data$Sex <- as.factor(data$Sex)
+            data$Title <- as.factor(data$Title)
+            data$Embarked <- as.factor(data$Embarked)
+            data$Age <- as.integer(data$Age)    
+         #updating train and test sets
+          train <- data %>% 
+            filter(PassengerId %in% train$PassengerId)
+          test <- data %>%
+            filter(PassengerId %in% test$PassengerId)
+          
+          #consider reducing Title col based on sex to avoid model overfitting 
+            
+            
+  #Correlation with Survival 
+      #Sex and Survival     
+      ggplot(train ,aes(x = Age, fill = Survived)) +
+        geom_histogram( alpha = 0.5, binwidth = 5, position = "identity") +
+        facet_wrap(~Sex)
+
+  
