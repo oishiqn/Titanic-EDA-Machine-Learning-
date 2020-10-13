@@ -112,4 +112,31 @@ library(stringr)
         geom_histogram( alpha = 0.5, binwidth = 5, position = "identity") +
         facet_wrap(~Sex)
 
+#Correlation  
+
+train %>%
+  select(Survived, Pclass, Sex, Age, Embarked, FamilyCount, Fare_per_person, SibSp, Parch) %>%
+  mutate(Sex = fct_recode(Sex,
+                        
+                        "0" = "male",
+                        
+                        "1" = "female")
+       
+  ) %>%
   
+  mutate(Sex = as.integer(Sex),
+         
+         Pclass = as.integer(Pclass),
+         
+         Survived = as.integer(Survived),
+         
+         Embarked = as.integer(Embarked)) %>% 
+  cor(use="complete.obs") %>%
+  
+  corrplot(type = "lower", diag=FALSE,col=brewer.pal(n=8, name="RdYlGn"))
+
+# Survived is strongly related to Pclass, Sex. It is also slightly related to Fare_per_person and Embarked
+# Pclass is strongly related to Fare_per_person. It is slightly related to Age, Embarked and Sex.
+# Sibsp and Parch are related to the family count.
+# Embarked is related to the Fare_per_person
+
